@@ -30,6 +30,7 @@ from attivita.cri_persone import createServizio, updateServizio, getServizio, ch
 from base.geo import Locazione
 from django.core.urlresolvers import resolve, reverse
 from django.contrib import messages
+from itertools import chain
 
 
 def attivita(request):
@@ -147,25 +148,28 @@ def attivita_aree_sede_area_cancella(request, me, sede_pk=None, area_pk=None):
         progetto.delete()
     return redirect("/attivita/aree/%d/" % (sede.pk,))
 
+
 @pagina_privata
 def servizio_gestisci(request, me, stato="aperte"):
-    from attivita.cri_persone import getListService, deleteService
+    from attivita.cri_persone import getListService, deleteService, getServizio
     from anagrafica.models import Delega
     from attivita.forms import ModuloFiltroElencoServizi
 
     modulo = ModuloFiltroElencoServizi(request.POST or None)
     modulo.fields['progetto'].choices = ModuloFiltroElencoServizi.popola_progetto(me)
 
-    contesto = {"modulo": modulo}
+    contesto = {"modulo": modulo, "me": me, "servizi": []}
 
+    sedi = []
+    sedi_pr = []
     if me.is_presidente or me.is_comissario:
         sedi = me.oggetti_permesso(GESTIONE_SEDE, solo_deleghe_attive=True).values_list('id', flat=True)
     else:
-        sedi = Progetto.objects.filter(
+        sedi = me.appartenenze_attuali().values_list('sede_id', flat=True)
+        sedi_pr = Progetto.objects.filter(
             id__in=Delega.objects.filter(tipo=DELEGATO_PROGETTO, persona=me).values_list('oggetto_id', flat=True)
         ).values_list('sede', flat=True)
-    # Decommenta per i test
-    # sedi = [646]
+        sedi = list(set(chain(sedi, sedi_pr)))
 
     delServizio = request.GET.get('del', None)
     if delServizio:
@@ -174,14 +178,43 @@ def servizio_gestisci(request, me, stato="aperte"):
     for id in sedi:
         if modulo.is_valid():
             result = getListService(id, name=modulo.cleaned_data['progetto'])
+            i_miei_servizi = modulo.cleaned_data['i_miei_servizi']
         else:
             result = getListService(id)
+            i_miei_servizi = False
 
         if 'result' in result:
             if result['result']['code'] == 200:
                 for sevizio in result['data']['offered_services']:
+                    if sevizio['project'] in Progetto.objects.filter(
+                            id__in=Delega.objects.filter(
+                                tipo=DELEGATO_PROGETTO, persona=me
+                            ).values_list(
+                                'oggetto_id', flat=True
+                            )
+                    ).values_list(
+                        'nome', flat=True
+                    ):
+                        sevizio['is_delegato_progetto'] = True
+                    else:
+                        sevizio['is_delegato_progetto'] = False
+
                     sevizio['project'] = Progetto.objects.filter(nome=sevizio['project']).first()
-                contesto['servizi'] = result['data']['offered_services']
+                    sevizio['accountables'] = [
+                        ref['name'] for ref in json.loads(
+                            "[{}]".format(
+                                getServizio(
+                                    sevizio['key']
+                                )['data']['accountables'].replace('\'', '"').replace('}{', '},{')
+                            )
+
+                        )
+                    ]
+                    if i_miei_servizi:
+                        if sevizio['is_delegato_progetto'] or '{}.{}'.format(me.nome, me.cognome) in sevizio['accountables']:
+                            contesto['servizi'].append(sevizio)
+                    else:
+                        contesto['servizi'].append(sevizio)
 
     return 'servizio_gestisci.html', contesto
 
@@ -375,7 +408,7 @@ def servizi_referenti(request, me, pk=None, nuova=False):
 
     # elimino referente
     if delete:
-        referenti.pop(int(delete))
+        referenti.pop(int(delete)-1)
         updateServizio(pk, precedenti=referenti)
 
     if request.POST:
@@ -491,6 +524,7 @@ def attivita_calendario(request, me=None, inizio=None, fine=None, vista="calenda
     }
 
     return 'attivita_calendario.html', contesto
+
 
 @pagina_privata
 def attivita_storico(request, me):
