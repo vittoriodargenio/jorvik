@@ -358,19 +358,34 @@ class FiltroAreaProgetto(forms.Form):
     scelta = forms.ChoiceField(choices=SCELTE, required=True)
 
 
-class ModuloOrganizzaServizio(forms.Form):
+class ModuloServiziStandard(forms.Form):
 
     @staticmethod
-    def popola_scelta():
+    def popola_scelta(summary='', description='', obbiettivo=None):
         select = []
-        serviziStandard = getServiziStandard()
-        if 'data' in serviziStandard and 'services' in serviziStandard['data']:
-            for s in getServiziStandard()['data']['services']:
+        desc = []
+        serviziStandard = getServiziStandard(summary=summary, description=description, obbiettivo=obbiettivo)
+        if 'data' in serviziStandard and 'generic_issue' in serviziStandard['data']:
+            for s in serviziStandard['data']['generic_issue']:
                 select.append(
                     (s['key'], s['summary'])
                 )
-        return tuple(select)
+                desc.append(s['description'])
+        return tuple(select), desc
 
+    obbiettivo_strategico = forms.IntegerField(required=False, min_value=1, max_value=6)
+    nome = forms.CharField(required=False)
+    descrizione = forms.CharField(required=False)
+
+    servizi = forms.MultipleChoiceField(
+        required=False,
+        choices=(),
+        widget=forms.SelectMultiple,
+        label="Scelta servizi standard"
+    )
+
+
+class ModuloOrganizzaServizio(forms.Form):
     @staticmethod
     def popola_progetto(me):
         from attivita.models import Progetto
@@ -389,15 +404,10 @@ class ModuloOrganizzaServizio(forms.Form):
         for p in qs:
             select.append(
                 (p.nome, p.nome)
-        )
+            )
         return tuple(select)
 
-    progetto = forms.ChoiceField()
-    servizi = forms.MultipleChoiceField(
-        choices=(),
-        widget=forms.SelectMultiple,
-        label="Scelta servizi standard"
-    )
+    progetto = forms.ChoiceField(required=False)
 
 
 class ModuloCreazioneArea(ModelForm):
@@ -432,6 +442,7 @@ class ModuloOrganizzaServizioReferente(forms.Form):
     )
 
     scelta = forms.ChoiceField(
+        required=False,
         choices=SCELTA,
         help_text="Scegli l'opzione appropriata."
     )
