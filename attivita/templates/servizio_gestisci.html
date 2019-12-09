@@ -60,21 +60,23 @@
                             </ul>
                         </td>
                         <td>
-                            <a href="/attivita/servizio/gestisci?del={{ s.key }}" class="text-danger" data-confirm="true">
-                                <i class="fa fa-fw fa-trash"></i> cancella servizio offerto
-                            </a><br />
+                            {% if me.nome|lower|add:'.'|add:me.cognome|lower  in s.accountables or s.is_delegato_progetto %}
+                                <a href="/attivita/servizio/gestisci?del={{ s.key }}" class="text-danger" data-confirm="true">
+                                    <i class="fa fa-fw fa-trash"></i> cancella servizio offerto
+                                </a><br/>
 
-                            <a href="/attivita/servizio/scheda/{{ s.key }}/modifica">
-                                <i class="fa fa-fw fa-pencil"></i> modifica info
-                            </a><br />
+                                <a href="/attivita/servizio/scheda/{{ s.key }}/modifica">
+                                    <i class="fa fa-fw fa-pencil"></i> modifica info
+                                </a><br/>
 
-                            <a href="/attivita/servizio/organizza/{{ s.key }}/referenti/">
-                                <i class="fa fa-fw fa-pencil"></i> modifica referenti
-                            </a><br />
+                                <a href="/attivita/servizio/organizza/{{ s.key }}/referenti/">
+                                    <i class="fa fa-fw fa-pencil"></i> modifica referenti
+                                </a><br/>
 
-                            <a href="/attivita/servizio/scheda/{{ s.key }}/modifica/servizi">
-                                <i class="fa fa-fw fa-pencil"></i> modifica servizi standard
-                            </a>
+                                <a href="/attivita/servizio/scheda/{{ s.key }}/modifica/servizi">
+                                    <i class="fa fa-fw fa-pencil"></i> modifica servizi standard
+                                </a>
+                            {% endif %}
                         </td>
                     </tr>
                 {% endfor %}

@@ -53,7 +53,7 @@ class ModuloFiltroElencoServizi(forms.Form):
         from anagrafica.models import Delega
         from anagrafica.permessi.applicazioni import DELEGATO_PROGETTO
         from anagrafica.permessi.costanti import GESTIONE_SEDE
-        select = [('', 'Seleziona un progetto')]
+        select = [('', 'Tutti')]
         if me.is_presidente or me.is_comissario:
             qs = Progetto.objects.filter(
                 sede_id__in=me.oggetti_permesso(GESTIONE_SEDE, solo_deleghe_attive=True).values_list('id', flat=True)
@@ -69,6 +69,7 @@ class ModuloFiltroElencoServizi(forms.Form):
         return tuple(select)
 
     progetto = forms.ChoiceField(required=False, label='')
+    i_miei_servizi = forms.BooleanField(required=False, label='I miei servizi')
 
 
 class ModuloServiziModificaStandard(forms.Form):
