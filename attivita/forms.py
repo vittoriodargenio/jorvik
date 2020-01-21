@@ -30,16 +30,38 @@ class ModuloServizioModifica(forms.Form):
     BOZZA = "11301"
     APERTA = "10413"
     CHIUSA = "6"
-    choise = (
+    CHOISE = (
         (BOZZA, 'Bozza'),
         (APERTA, 'Aperta'),
         (CHIUSA, 'Chiusa')
     )
 
-    nome_progetto = forms.CharField(required=False, max_length=150, label='Nome Progetto')
+    @staticmethod
+    def popola_progetto(me):
+        from attivita.models import Progetto
+        from anagrafica.models import Delega
+        from anagrafica.permessi.applicazioni import DELEGATO_PROGETTO
+        from anagrafica.permessi.costanti import GESTIONE_SEDE
+        select = [('', 'Seleziona un progetto')]
+        if me.is_presidente or me.is_comissario:
+            qs = Progetto.objects.filter(
+                sede_id__in=me.oggetti_permesso(GESTIONE_SEDE, solo_deleghe_attive=True).values_list('id', flat=True)
+            )
+        else:
+            qs = Progetto.objects.filter(
+                id__in=Delega.objects.filter(tipo=DELEGATO_PROGETTO, persona=me).values_list('oggetto_id', flat=True)
+            )
+        for p in qs:
+            select.append(
+                (p.nome, p.nome)
+            )
+        return tuple(select)
+
+    # nome_progetto = forms.CharField(required=False, max_length=150, label='Nome Progetto')
+    nome_progetto = forms.ChoiceField(choices=(), required=False)
 
     stato = forms.ChoiceField(
-        choices=choise, required=True, initial=BOZZA
+        choices=CHOISE, required=True, initial=BOZZA
     )
 
     testo = forms.CharField(required=False, max_length=100000, widget=forms.Textarea())

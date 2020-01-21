@@ -969,8 +969,10 @@ def servizio_scheda_informazioni_modifica(request, me, pk=None):
             if result['data']['summary']:
                 init.update({'nome_progetto': result['data']['summary']})
         modulo = ModuloServizioModifica(request.POST or None, initial=init)
+        modulo.fields['nome_progetto'].choices = ModuloServizioModifica.popola_progetto(me)
     else:
         modulo = ModuloServizioModifica(request.POST or None)
+        modulo.fields['nome_progetto'].choices = ModuloServizioModifica.popola_progetto(me)
 
     contesto.update({'modulo': modulo})
     if modulo.is_valid():
