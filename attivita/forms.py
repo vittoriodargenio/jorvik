@@ -366,12 +366,14 @@ class ModuloServiziStandard(forms.Form):
         select = []
         desc = []
         serviziStandard = getServiziStandard(summary=summary, description=description, obbiettivo=obbiettivo)
-        if 'data' in serviziStandard and 'generic_issue' in serviziStandard['data']:
-            for s in serviziStandard['data']['generic_issue']:
+        print(serviziStandard['data'])
+        if 'data' in serviziStandard and 'services' in serviziStandard['data']:
+            for s in serviziStandard['data']['services']:
                 select.append(
                     (s['key'], s['summary'])
                 )
                 desc.append(s['description'])
+        print(tuple(select))
         return tuple(select), desc
 
     obbiettivo_strategico = forms.IntegerField(required=False, min_value=1, max_value=6)

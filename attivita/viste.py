@@ -270,15 +270,19 @@ def servizio_organizza(request, me):
     modulo_servizi = ModuloServiziStandard(request.POST or None)
     modulo_servizi.fields['servizi'].choices, descrizione = ModuloServiziStandard.popola_scelta()
 
-    if modulo_servizi.is_valid():
+    if request.POST and modulo_servizi.is_valid():
         nome = modulo_servizi.cleaned_data['nome']
         descrizione = modulo_servizi.cleaned_data['descrizione']
         obbiettivo = modulo_servizi.cleaned_data['obbiettivo_strategico']
-        if nome or descrizione or obbiettivo:
-            modulo_servizi = ModuloServiziStandard(None)
+        servizio = modulo_servizi.cleaned_data['servizi']
+
+        if (nome or descrizione or obbiettivo) and not servizio:
+
+            modulo_servizi = ModuloServiziStandard(request.POST or None)
             modulo_servizi.fields['servizi'].choices, descrizione = ModuloServiziStandard.popola_scelta(
                 summary=nome, description=descrizione, obbiettivo=obbiettivo
             )
+
             contesto = {
                 "modulo": modulo,
                 "modulo_referente": modulo_referente,
@@ -286,6 +290,9 @@ def servizio_organizza(request, me):
                 "descrizione": descrizione
             }
             return 'servizio_organizza.html', contesto
+
+
+
 
     contesto = {
         "modulo": modulo,
@@ -297,6 +304,8 @@ def servizio_organizza(request, me):
     if request.POST and modulo.is_valid() and modulo_referente.is_valid() and modulo_servizi.is_valid():
 
         progetto = Progetto.objects.filter(nome__iexact=modulo.cleaned_data['progetto']).first()
+        if not progetto:
+            return 'servizio_organizza.html', contesto
 
         result = createServizio(
             # Decommenta per i test

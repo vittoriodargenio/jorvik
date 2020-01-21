@@ -10,7 +10,7 @@ am_end_pont = settings.APIS_CONF['crip']['am_end_pont']
 logger = logging.getLogger(__name__)
 
 
-def getServiziStandard(max_result=200, summary='', description='', obbiettivo=None):
+def getServiziStandard(max_result=500, summary='', description='', obbiettivo=None):
 
     params = {}
     if summary:
@@ -18,12 +18,13 @@ def getServiziStandard(max_result=200, summary='', description='', obbiettivo=No
     if description:
         params['description'] = '{}*'.format(description)
     if obbiettivo:
-        params['ObiettivoStrategico'] = 'Obiettivo {}'.format(obbiettivo)
+        params['strategic_objective'] = 'Obiettivo {}'.format(obbiettivo)
 
     r = requests.get(
-        '{}/generic_issue/CRIP-Service/?{}'.format(
+        '{}/service/?maxResults={}{}'.format(
             end_point,
-            urlencode(params, quote_plus)
+            max_result,
+            '&{}'.format(urlencode(params, quote_plus))
         )
     )
 
