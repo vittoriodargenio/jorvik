@@ -918,6 +918,8 @@ def servizio_modifica_servizi_standard(request, me, pk=None):
     from attivita.forms import ModuloServiziStandard
     from attivita.cri_persone import update_service
 
+    delete = request.GET.get('key', None)
+
     result = getServizio(pk)
 
     modulo = ModuloServiziStandard(request.POST or None)
@@ -955,6 +957,9 @@ def servizio_modifica_servizi_standard(request, me, pk=None):
 
             contesto.update({'nome': result['data']['project']})
             contesto.update({"servizi": result['data']['service']})
+
+    if delete:
+        contesto.update({"servizi": []})
 
     return 'servizi_standard_modifica.html', contesto
 
