@@ -915,35 +915,46 @@ def attivita_scheda_turni_modifica_link_permanente(request, me, pk=None, turno_p
 
 @pagina_privata
 def servizio_modifica_servizi_standard(request, me, pk=None):
-    from attivita.forms import ModuloServiziModificaStandard
+    from attivita.forms import ModuloServiziStandard
+    from attivita.cri_persone import update_service
+
     result = getServizio(pk)
-    # service_delete = request.GET.get('key', None)
-    services = []
-    if 'result' in result and 'code' in result['result'] and result['result']['code'] == 200:
-        for s in result['data']['service']:
-            # if s['key'] == service_delete: continue
-            services.append(s['key'])
 
-    modulo = ModuloServiziModificaStandard(request.POST or None, initial={'servizi': services})
+    modulo = ModuloServiziStandard(request.POST or None)
+    modulo.fields['servizi'].choices, descrizione = ModuloServiziStandard.popola_scelta()
 
-
-    modulo.fields['servizi'].choices = ModuloServiziModificaStandard.popola_scelta()
     contesto = {
         "modulo": modulo,
-        'type': request.get_full_path().split('/')[-2].strip()
+        'type': request.get_full_path().split('/')[-2].strip(),
+        "descrizione": descrizione
     }
 
-    if request.POST:
-        if modulo.is_valid():
-            services.extend(modulo.cleaned_data['servizi'])
+    contesto.update({'nome': result['data']['project']})
+    contesto.update({"servizi": result['data']['service']})
 
-    if services:
-        updateServizio(pk, servizi=services)
-        result = getServizio(pk)
+    if request.POST and modulo.is_valid():
+        nome = modulo.cleaned_data['nome']
+        descrizione = modulo.cleaned_data['descrizione']
+        obbiettivo = modulo.cleaned_data['obbiettivo_strategico']
+        servizio = modulo.cleaned_data['servizi']
 
-    if 'result' in result and 'code' in result['result'] and result['result']['code'] == 200:
-        contesto.update({'nome': result['data']['project']})
-        contesto.update({"servizi": result['data']['service']})
+        if (nome or descrizione or obbiettivo) and not servizio:
+
+            modulo = ModuloServiziStandard(request.POST)
+            modulo.fields['servizi'].choices, descrizione = ModuloServiziStandard.popola_scelta(
+                summary=nome, description=descrizione, obbiettivo=obbiettivo
+            )
+
+            contesto.update({'modulo': modulo, 'descrizione': descrizione})
+
+            return 'servizi_standard_modifica.html', contesto
+        elif servizio:
+            update_service(pk, service=["{}".format(servizio[0])])
+
+            result = getServizio(pk)
+
+            contesto.update({'nome': result['data']['project']})
+            contesto.update({"servizi": result['data']['service']})
 
     return 'servizi_standard_modifica.html', contesto
 
@@ -952,7 +963,6 @@ def servizio_modifica_servizi_standard(request, me, pk=None):
 def servizio_scheda_informazioni_modifica(request, me, pk=None):
     from attivita.forms import ModuloServizioModifica
     from attivita.cri_persone import getServizio
-    from attivita.models import Progetto
     modulo = None
 
     result = getServizio(pk)
@@ -979,9 +989,6 @@ def servizio_scheda_informazioni_modifica(request, me, pk=None):
         testo = modulo.cleaned_data['testo']
         summary = modulo.cleaned_data['nome_progetto']
         if init['nome_progetto'] != summary:
-            p = Progetto.objects.filter(nome=init['nome_progetto'], sede=int(result['data']['committee'][0])).first()
-            p.nome = summary
-            p.save()
             contesto.update({'nome': summary})
         new_state = modulo.cleaned_data['stato']
         if new_state != result['data']['status']:
@@ -990,7 +997,7 @@ def servizio_scheda_informazioni_modifica(request, me, pk=None):
             except:
                 messages.error(request, 'Errore nel passaggio di stato')
                 return 'servizio_scheda_infomazioni_modifica.html', contesto
-        updateServizio(pk, **{'testo': testo, 'summary': summary})
+        updateServizio(pk, **{'testo': testo, 'summary': summary, 'project': summary})
         messages.success(request, 'Salvato correttamente')
 
     return 'servizio_scheda_infomazioni_modifica.html', contesto

@@ -70,6 +70,7 @@ def updateServizio(key, **kwargs):
         for s in kwargs.get('servizi'):
             ss += "{},".format(s)
         data['service'] = [ss[:-1] if ss else ""]
+        print(data['service'])
 
     if kwargs.get('testo'):
         data['description'] = kwargs.get('testo')
@@ -79,6 +80,9 @@ def updateServizio(key, **kwargs):
 
     if kwargs.get('summary'):
         data['summary'] = kwargs.get('summary')
+
+    if kwargs.get('project'):
+        data['project'] = kwargs.get('project')
 
     r = requests.put(
         '{}/offeredserviceextended/{}/'.format(end_point, key),
@@ -95,7 +99,7 @@ def update_service(key, **kwargs):
         '{}/offeredserviceextended/{}/'.format(end_point, key),
         json=kwargs
     )
-
+    print(kwargs)
     resp = r.json()
     logger.debug('- _updateServizio {} {}'.format(resp['result']['code'], resp['result']['description']))
     return resp if 'result' in resp and resp['result']['code'] == 204 else {}
