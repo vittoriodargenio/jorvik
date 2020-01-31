@@ -35,7 +35,7 @@ def getServiziStandard(max_result=500, summary='', description='', obbiettivo=No
 
 def getBeneficiary():
     r = requests.get(
-        '{}/public/cri/crip/autosug/offeredservice/beneficiarytype'.format(am_end_pont)
+        '{}/generic_issue/CRIP-BeneficiaryType/'.format(end_point)
     )
     return r.json() if r.status_code == 200 else {}
 
