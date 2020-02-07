@@ -990,7 +990,7 @@ class Persona(ModelloSemplice, ConMarcaTemporale, ConAllegati, ConVecchioID):
             appartenenza.save()
         self.chiudi_tutto(mezzanotte_24_ieri(data))
 
-    def chiudi_tutto(self, data, da_dipendente=False, mittente_mail=None):
+    def chiudi_tutto(self, data, da_dipendente=False, mittente_mail=None, appartenenza=None):
         """
         Chiude tutti i ruoli collegati a fronte di dimissioni / espulsioni / trasferimenti
 
@@ -1039,9 +1039,12 @@ class Persona(ModelloSemplice, ConMarcaTemporale, ConAllegati, ConVecchioID):
                         inizio=mezzanotte_00(data + timedelta(days=1))
                     )
 
-        # Tutte le altre deleghe le terminiamo e basta
-        for delega in self.deleghe_attuali(solo_attive=False):
-            delega.termina(mittente=mittente_mail, data=data)
+        if appartenenza: # Se viene data una appartenenza termina solo le deleghe associate a questa
+            for delega in self.deleghe_attuali(oggetto_id=appartenenza.sede.id, stato=Delega.ATTIVA):
+                delega.termina(mittente=mittente_mail, data=data)
+        else:
+            for delega in self.deleghe_attuali(solo_attive=False):
+                delega.termina(mittente=mittente_mail, data=data)
 
         if not da_dipendente:
             for partecipazione in self.partecipazioni.filter(turno__fine__gte=poco_fa()):
@@ -1534,8 +1537,6 @@ class Appartenenza(ModelloSemplice, ConStorico, ConMarcaTemporale, ConAutorizzaz
     # Membro che puo' accedere alla rubrica di una Sede
     MEMBRO_RUBRICA = (VOLONTARIO, ORDINARIO, ESTESO, DIPENDENTE)
 
-    #TODO: SEVIZIO_CIVILE_UNIVERSALE il tesserino puo essere pagato dal presidentte
-    # Membri che possono richiedere il tesserino
     MEMBRO_TESSERINO = (VOLONTARIO, SEVIZIO_CIVILE_UNIVERSALE)
 
     # Membri soci
@@ -2874,7 +2875,13 @@ class Dimissione(ModelloSemplice, ConMarcaTemporale):
 
         corpo['membro'] = dict(Appartenenza.MEMBRO)[precedente_appartenenza.membro]
 
-        self.persona.chiudi_tutto(mezzanotte_24_ieri(data), mittente_mail=applicante, da_dipendente=da_dipendente)
+        if self.appartenenza.membro == Appartenenza.SEVIZIO_CIVILE_UNIVERSALE:
+            self.persona.chiudi_tutto(
+                mezzanotte_24_ieri(data), mittente_mail=applicante,
+                da_dipendente=da_dipendente, appartenenza=self.appartenenza
+            )
+        else:
+            self.persona.chiudi_tutto(mezzanotte_24_ieri(data), mittente_mail=applicante, da_dipendente=da_dipendente)
 
         if trasforma_in_sostenitore:
             app = Appartenenza(precedente=precedente_appartenenza, persona=self.persona,
