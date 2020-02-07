@@ -988,7 +988,7 @@ class Persona(ModelloSemplice, ConMarcaTemporale, ConAllegati, ConVecchioID):
             appartenenza.terminazione = Appartenenza.ESPULSIONE
             appartenenza.fine = mezzanotte_24_ieri(data)
             appartenenza.save()
-        self.chiudi_tutto(mezzanotte_24_ieri(data))
+        self.chiudi_tutto(mezzanotte_24_ieri(data), appartenenza=self.appartenenza)
 
     def chiudi_tutto(self, data, da_dipendente=False, mittente_mail=None, appartenenza=None):
         """
@@ -2496,7 +2496,7 @@ class Trasferimento(ModelloSemplice, ConMarcaTemporale, ConAutorizzazioni, ConPD
             if self.persona.appartenenze_attuali(membro__in=(Appartenenza.DIPENDENTE,)).exists():
                     da_dipendente = True
 
-            self.persona.chiudi_tutto(mezzanotte_24_ieri(data), da_dipendente=da_dipendente)
+            self.persona.chiudi_tutto(mezzanotte_24_ieri(data), da_dipendente=da_dipendente, appartenenza=self.appartenenza)
 
             # Invia notifica tramite e-mail
             app = Appartenenza.objects.create(
@@ -2875,13 +2875,10 @@ class Dimissione(ModelloSemplice, ConMarcaTemporale):
 
         corpo['membro'] = dict(Appartenenza.MEMBRO)[precedente_appartenenza.membro]
 
-        if self.appartenenza.membro == Appartenenza.SEVIZIO_CIVILE_UNIVERSALE:
-            self.persona.chiudi_tutto(
-                mezzanotte_24_ieri(data), mittente_mail=applicante,
-                da_dipendente=da_dipendente, appartenenza=self.appartenenza
-            )
-        else:
-            self.persona.chiudi_tutto(mezzanotte_24_ieri(data), mittente_mail=applicante, da_dipendente=da_dipendente)
+        self.persona.chiudi_tutto(
+            mezzanotte_24_ieri(data), mittente_mail=applicante,
+            da_dipendente=da_dipendente, appartenenza=self.appartenenza
+        )
 
         if trasforma_in_sostenitore:
             app = Appartenenza(precedente=precedente_appartenenza, persona=self.persona,
